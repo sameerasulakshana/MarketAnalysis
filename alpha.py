@@ -12,23 +12,29 @@ ALPHA_VANTAGE_API_KEY = 'BDPVFEYI8YL2VE2B'
 
 def get_symbol_data(symbol, interval, outputsize='compact'):
     ts = TimeSeries(key=ALPHA_VANTAGE_API_KEY, output_format='pandas')
-    if interval == 'M5':
-        data, meta_data = ts.get_intraday(symbol=symbol, interval='5min', outputsize=outputsize)
-    elif interval == 'H1':
-        data, meta_data = ts.get_intraday(symbol=symbol, interval='60min', outputsize=outputsize)
-    elif interval == 'D1':
-        data, meta_data = ts.get_daily(symbol=symbol, outputsize=outputsize)
-    
-    data.reset_index(inplace=True)
-    data.rename(columns={
-        'date': 'time',
-        '1. open': 'open',
-        '2. high': 'high',
-        '3. low': 'low',
-        '4. close': 'close',
-        '5. volume': 'volume'
-    }, inplace=True)
-    return data
+    try:
+        if interval == 'M5':
+            data, meta_data = ts.get_intraday(symbol=symbol, interval='5min', outputsize=outputsize)
+        elif interval == 'H1':
+            data, meta_data = ts.get_intraday(symbol=symbol, interval='60min', outputsize=outputsize)
+        elif interval == 'D1':
+            data, meta_data = ts.get_daily(symbol=symbol, outputsize=outputsize)
+        else:
+            raise ValueError("Invalid interval. Choose from 'M5', 'H1', or 'D1'.")
+        
+        data.reset_index(inplace=True)
+        data.rename(columns={
+            'date': 'time',
+            '1. open': 'open',
+            '2. high': 'high',
+            '3. low': 'low',
+            '4. close': 'close',
+            '5. volume': 'volume'
+        }, inplace=True)
+        return data
+    except ValueError as e:
+        st.error(f"Error fetching data: {e}")
+        return None
 
 def calculate_rsi(data, periods=14):
     delta = data['close'].diff()
@@ -38,6 +44,10 @@ def calculate_rsi(data, periods=14):
     return 100 - (100 / (1 + rs))
 
 def plot_symbol_data(df, symbol, timeframe):
+    if df is None:
+        st.error("No data to display.")
+        return
+
     # Calculate moving averages and RSI
     df['MA20'] = df['close'].rolling(window=20).mean()
     df['MA50'] = df['close'].rolling(window=50).mean()
@@ -142,9 +152,5 @@ def plot_symbol_data(df, symbol, timeframe):
 
     # Update RSI subplot
     fig.update_yaxes(title_text="RSI", range=[0, 100], row=2, col=1)
-
-    # Save the chart as an image
-    filename = f'{symbol}_{timeframe}.png'
-    pio.write_image(fig, filename)
 
     return st.plotly_chart(fig, use_container_width=True)
