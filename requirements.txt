@@ -1,0 +1,7 @@
+streamlit
+duckduckgo_search
+requests
+pandas
+plotly
+Pillow
+alpha_vantage
